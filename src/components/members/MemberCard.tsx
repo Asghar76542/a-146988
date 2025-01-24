@@ -12,7 +12,6 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import PaymentDialog from './PaymentDialog';
-import { format } from 'date-fns';
 import NotesDialog from './notes/NotesDialog';
 import NotesList from './notes/NotesList';
 import EditProfileDialog from './EditProfileDialog';
@@ -27,7 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from 'lucide-react';
-import PasswordChangeSection from '@/components/auth/PasswordChangeSection';
+import MemberPasswordSection from './card/MemberPasswordSection';
+import MemberPaymentHistory from './card/MemberPaymentHistory';
 
 interface MemberCardProps {
   member: Member;
@@ -58,31 +58,9 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
         .maybeSingle();
       
       if (error) throw error;
-
-      const collector: Collector = {
-        ...collectorData,
-        roles: [],
-        enhanced_roles: [],
-        syncStatus: undefined
-      };
-
-      return collector;
+      return collectorData;
     },
     enabled: !!member.collector
-  });
-
-  const { data: paymentHistory } = useQuery({
-    queryKey: ['payment-history', member.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('payment_requests')
-        .select('*')
-        .eq('member_id', member.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    }
   });
 
   const handlePaymentClick = () => {
@@ -95,15 +73,6 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
       return;
     }
     setIsPaymentDialogOpen(true);
-  };
-
-  const handleEditProfile = () => {
-    setIsEditProfileOpen(true);
-  };
-
-  const handleProfileUpdated = () => {
-    // Refresh data after profile update
-    window.location.reload();
   };
 
   return (
@@ -119,7 +88,7 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
               <Button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleEditProfile();
+                  setIsEditProfileOpen(true);
                 }} 
                 className="bg-dashboard-accent2 hover:bg-dashboard-accent2/80"
               >
@@ -174,43 +143,13 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
             </div>
           </div>
 
-          {/* Add Password Management Section for admins */}
+          {/* Password Management Section for admins */}
           {userRole === 'admin' && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-dashboard-accent1">Password Management</h4>
-              <div className="bg-dashboard-card p-3 rounded-lg border border-dashboard-cardBorder">
-                <PasswordChangeSection memberNumber={member.member_number} />
-              </div>
-            </div>
+            <MemberPasswordSection memberNumber={member.member_number} />
           )}
 
           {/* Payment History */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-dashboard-accent3">Payment History</h4>
-            <div className="bg-dashboard-card p-3 rounded-lg border border-dashboard-cardBorder">
-              {paymentHistory && paymentHistory.length > 0 ? (
-                <div className="space-y-3">
-                  {paymentHistory.map((payment) => (
-                    <div key={payment.id} className="border-b border-dashboard-cardBorder pb-2">
-                      <p className="text-sm text-dashboard-text">Date: <span className="text-white">{format(new Date(payment.created_at), 'dd/MM/yyyy')}</span></p>
-                      <p className="text-sm text-dashboard-text">Status: 
-                        <span className={`ml-1 ${
-                          payment.status === 'completed' ? 'text-dashboard-accent3' :
-                          payment.status === 'pending' ? 'text-dashboard-warning' :
-                          'text-dashboard-error'
-                        }`}>
-                          {payment.status}
-                        </span>
-                      </p>
-                      <p className="text-sm text-dashboard-text">Type: <span className="text-dashboard-accent2">{payment.payment_type}</span></p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-dashboard-muted">No payment history available</p>
-              )}
-            </div>
-          </div>
+          <MemberPaymentHistory memberId={member.id} />
 
           {/* Notes Section */}
           {userRole === 'admin' && (
@@ -247,7 +186,7 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
             member={member}
             open={isEditProfileOpen}
             onOpenChange={setIsEditProfileOpen}
-            onProfileUpdated={handleProfileUpdated}
+            onProfileUpdated={() => window.location.reload()}
           />
         </div>
       </AccordionContent>
