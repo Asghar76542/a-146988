@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/accordion';
 import { useQuery } from '@tanstack/react-query';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { format } from 'date-fns'; // Add this import
 import PaymentDialog from './PaymentDialog';
 import NotesDialog from './notes/NotesDialog';
 import NotesList from './notes/NotesList';
@@ -58,7 +59,24 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
         .maybeSingle();
       
       if (error) throw error;
-      return collectorData;
+
+      // Transform the data to match the Collector type
+      if (collectorData) {
+        const collector: Collector = {
+          ...collectorData,
+          roles: [],
+          enhanced_roles: [],
+          permissions: {
+            canManageUsers: false,
+            canCollectPayments: true,
+            canAccessSystem: true,
+            canViewAudit: false,
+            canManageCollectors: false
+          }
+        };
+        return collector;
+      }
+      return null;
     },
     enabled: !!member.collector
   });
