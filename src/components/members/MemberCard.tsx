@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from 'lucide-react';
-import PasswordManagementSection from './password/PasswordManagementSection';
+import PasswordChangeSection from '@/components/auth/PasswordChangeSection';
 
 interface MemberCardProps {
   member: Member;
@@ -174,6 +174,16 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
             </div>
           </div>
 
+          {/* Add Password Management Section for admins */}
+          {userRole === 'admin' && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-dashboard-accent1">Password Management</h4>
+              <div className="bg-dashboard-card p-3 rounded-lg border border-dashboard-cardBorder">
+                <PasswordChangeSection memberNumber={member.member_number} />
+              </div>
+            </div>
+          )}
+
           {/* Payment History */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-dashboard-accent3">Payment History</h4>
@@ -216,18 +226,6 @@ const MemberCard = ({ member, userRole, onEditClick, onDeleteClick }: MemberCard
               </div>
               <NotesList memberId={member.id} />
             </div>
-          )}
-
-          {/* Add Password Management Section for admins */}
-          {userRole === 'admin' && (
-            <PasswordManagementSection
-              memberId={member.id}
-              memberNumber={member.member_number}
-              passwordSetAt={member.password_set_at ? new Date(member.password_set_at) : null}
-              failedLoginAttempts={member.failed_login_attempts || 0}
-              lockedUntil={member.locked_until ? new Date(member.locked_until) : null}
-              passwordResetRequired={member.password_reset_required || false}
-            />
           )}
 
           <PaymentDialog
