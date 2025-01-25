@@ -16,10 +16,13 @@ const ChangePasswordDialog = ({
   onOpenChange,
   memberNumber,
 }: ChangePasswordDialogProps) => {
+  console.log("ChangePasswordDialog.tsx: Component rendered", { open, memberNumber });
+  
   const [memberName, setMemberName] = useState<string>("Loading...");
 
   useEffect(() => {
     const fetchMemberName = async () => {
+      console.log("ChangePasswordDialog.tsx: Fetching member name for", memberNumber);
       try {
         const { data, error } = await supabase
           .from('members')
@@ -28,14 +31,15 @@ const ChangePasswordDialog = ({
           .single();
 
         if (error) {
-          console.error('Error fetching member name:', error);
+          console.error('ChangePasswordDialog.tsx: Error fetching member name:', error);
           setMemberName("Unknown Member");
           return;
         }
 
+        console.log("ChangePasswordDialog.tsx: Member name fetched successfully", data.full_name);
         setMemberName(data.full_name);
       } catch (error) {
-        console.error('Error in fetchMemberName:', error);
+        console.error('ChangePasswordDialog.tsx: Error in fetchMemberName:', error);
         setMemberName("Unknown Member");
       }
     };
@@ -53,7 +57,10 @@ const ChangePasswordDialog = ({
   return (
     <ResponsiveDialog 
       open={open} 
-      onOpenChange={onOpenChange}
+      onOpenChange={(newOpen) => {
+        console.log("ChangePasswordDialog.tsx: Dialog state changing to:", newOpen);
+        onOpenChange(newOpen);
+      }}
       title="Change Password"
       maxWidth="md"
     >
@@ -70,7 +77,10 @@ const ChangePasswordDialog = ({
         
         <PasswordForm
           memberNumber={memberNumber}
-          onCancel={() => onOpenChange(false)}
+          onCancel={() => {
+            console.log("ChangePasswordDialog.tsx: Cancel button clicked");
+            onOpenChange(false);
+          }}
           onSuccess={handleSuccess}
         />
       </div>

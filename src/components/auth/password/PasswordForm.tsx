@@ -47,6 +47,8 @@ export const PasswordForm = ({
   isSubmitting: externalIsSubmitting,
   setIsSubmitting: externalSetIsSubmitting
 }: PasswordFormProps) => {
+  console.log("PasswordForm.tsx: Component rendered", { memberNumber, hideCurrentPassword });
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
@@ -63,27 +65,29 @@ export const PasswordForm = ({
   const setIsSubmitting = externalSetIsSubmitting ?? (() => {});
 
   const handleFormSubmit = async (values: PasswordFormValues) => {
+    console.log("PasswordForm.tsx: Form submission started", { values: { ...values, currentPassword: '[REDACTED]' } });
+    
     try {
       setIsSubmitting(true);
-      console.log("[PasswordForm] Submitting form with token:", !!resetToken);
+      console.log("PasswordForm.tsx: Calling handlePasswordChange");
       
       if (onSubmit) {
         await onSubmit(values);
       } else {
         const result = await handlePasswordChange(values, resetToken);
+        console.log("PasswordForm.tsx: Password change result:", result);
         
         if (result?.success) {
-          console.log("[PasswordForm] Password change successful");
+          console.log("PasswordForm.tsx: Password change successful");
           form.reset();
           toast.success("Password updated successfully");
           if (onSuccess) {
             onSuccess();
           }
         } else {
-          console.error("[PasswordForm] Password change failed:", result?.error);
+          console.error("PasswordForm.tsx: Password change failed:", result?.error);
           let errorMessage = result?.error;
           
-          // Handle specific error codes
           if (result?.code === 'INVALID_CURRENT_PASSWORD') {
             errorMessage = "Current password is incorrect";
           } else if (result?.code === 'MEMBER_NOT_FOUND') {
@@ -97,14 +101,21 @@ export const PasswordForm = ({
         }
       }
     } catch (error) {
-      console.error("[PasswordForm] Submit error:", error);
+      console.error("PasswordForm.tsx: Submit error:", error);
       if (onError) {
         onError(error);
       }
     } finally {
+      console.log("PasswordForm.tsx: Form submission completed");
       setIsSubmitting(false);
     }
   };
+
+  console.log("PasswordForm.tsx: Form state", { 
+    isValid: form.formState.isValid,
+    isDirty: form.formState.isDirty,
+    errors: form.formState.errors
+  });
 
   return (
     <Form {...form}>
@@ -140,7 +151,10 @@ export const PasswordForm = ({
             <Button
               type="button"
               variant="outline"
-              onClick={onCancel}
+              onClick={() => {
+                console.log("PasswordForm.tsx: Cancel button clicked");
+                onCancel();
+              }}
               disabled={isSubmitting}
               className="bg-dashboard-dark hover:bg-dashboard-cardHover hover:text-white border-dashboard-cardBorder transition-all duration-200"
             >
