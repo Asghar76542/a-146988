@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { Key } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordForm } from "./password/PasswordForm";
 import { PasswordRequirements } from "./password/PasswordRequirements";
@@ -56,21 +51,20 @@ const ChangePasswordDialog = ({
   };
 
   return (
-    <Dialog 
+    <ResponsiveDialog 
       open={open} 
       onOpenChange={onOpenChange}
+      title="Change Password"
+      maxWidth="md"
     >
-      <DialogContent className="w-full max-w-md bg-dashboard-card border border-dashboard-cardBorder">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold text-dashboard-accent1 flex items-center gap-2">
-            <Key className="w-5 h-5" />
-            Change Password
-          </DialogTitle>
-          <div className="text-sm text-dashboard-text mt-2">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-dashboard-accent1">
+          <Key className="w-5 h-5" />
+          <div className="text-sm text-dashboard-text">
             <p className="mb-1">Member: <span className="font-medium">{memberName}</span></p>
             <p>Member Number: <span className="font-medium">{memberNumber}</span></p>
           </div>
-        </DialogHeader>
+        </div>
 
         <PasswordRequirements />
         
@@ -79,8 +73,8 @@ const ChangePasswordDialog = ({
           onCancel={() => onOpenChange(false)}
           onSuccess={handleSuccess}
         />
-      </DialogContent>
-    </Dialog>
+      </div>
+    </ResponsiveDialog>
   );
 };
 

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Lock, LockKeyhole, Key, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import AdminPasswordResetDialog from '@/components/auth/AdminPasswordResetDialog';
+import MagicLinkButton from '@/components/auth/password/MagicLinkButton';
 
 interface PasswordManagementSectionProps {
   memberId: string;
   memberNumber: string;
+  memberName: string;
   passwordSetAt: Date | null;
   failedLoginAttempts: number;
   lockedUntil: Date | null;
@@ -18,62 +20,56 @@ interface PasswordManagementSectionProps {
 const PasswordManagementSection = ({
   memberId,
   memberNumber,
+  memberName,
   passwordSetAt,
   failedLoginAttempts,
   lockedUntil,
   passwordResetRequired,
 }: PasswordManagementSectionProps) => {
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-
-  const handlePasswordReset = async () => {
-    try {
-      setIsResetting(true);
-      
-      // Generate a temporary password (member number + random string)
-      const tempPassword = `${memberNumber}${Math.random().toString(36).slice(-4)}`;
-      
-      const { data, error } = await supabase.rpc('handle_password_reset', {
-        member_number: memberNumber,
-        new_password: tempPassword,
-        admin_user_id: (await supabase.auth.getUser()).data.user?.id,
-        ip_address: window.location.hostname,
-        user_agent: navigator.userAgent,
-        client_info: JSON.stringify({
-          platform: navigator.platform,
-          language: navigator.language
-        })
-      });
-
-      if (error) throw error;
-
-      toast.success("Password has been reset", {
-        description: `Temporary password: ${tempPassword}`
-      });
-
-      setShowResetConfirm(false);
-    } catch (error: any) {
-      toast.error("Failed to reset password", {
-        description: error.message
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const handleUnlockAccount = async () => {
     try {
+      console.log('Unlocking account for member:', {
+        memberNumber,
+        memberName,
+        timestamp: new Date().toISOString()
+      });
+
+      setIsUnlocking(true);
       const { error } = await supabase.rpc('reset_failed_login', {
         member_number: memberNumber
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error unlocking account:', {
+          error,
+          memberNumber,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
 
-      toast.success("Account has been unlocked");
+      toast.success("Account has been unlocked", {
+        description: `Successfully unlocked account for ${memberName}`
+      });
+
+      // Invalidate queries to refresh member data
+      // This assumes you're using react-query and have queryClient available
+      // If not, you'll need to implement your own refresh mechanism
     } catch (error: any) {
+      console.error('Failed to unlock account:', {
+        error,
+        memberNumber,
+        timestamp: new Date().toISOString()
+      });
+      
       toast.error("Failed to unlock account", {
         description: error.message
       });
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -117,17 +113,18 @@ const PasswordManagementSection = ({
               variant="outline"
               size="sm"
               onClick={handleUnlockAccount}
+              disabled={isUnlocking}
               className="bg-dashboard-card hover:bg-dashboard-cardHover"
             >
               <Lock className="w-4 h-4 mr-2" />
-              Unlock
+              {isUnlocking ? 'Unlocking...' : 'Unlock'}
             </Button>
           )}
           
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowResetConfirm(true)}
+            onClick={() => setShowResetDialog(true)}
             className="bg-dashboard-card hover:bg-dashboard-cardHover"
           >
             <Key className="w-4 h-4 mr-2" />
@@ -142,26 +139,17 @@ const PasswordManagementSection = ({
         </p>
       )}
 
-      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Reset Password?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will reset the member's password and generate a temporary password. The member will be required to change their password on next login.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handlePasswordReset}
-              disabled={isResetting}
-              className="bg-dashboard-accent1 hover:bg-dashboard-accent1/80"
-            >
-              {isResetting ? "Resetting..." : "Reset Password"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MagicLinkButton 
+        memberNumber={memberNumber}
+        memberName={memberName}
+      />
+
+      <AdminPasswordResetDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+        memberNumber={memberNumber}
+        memberName={memberName}
+      />
     </div>
   );
 };

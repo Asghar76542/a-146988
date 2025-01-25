@@ -14,35 +14,12 @@ interface SidePanelProps {
 
 const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
   const { session, handleSignOut } = useAuthSession();
-  const { userRole, userRoles, roleLoading, hasRole } = useRoleAccess();
+  const { userRole, userRoles, roleLoading } = useRoleAccess();
   const { toast } = useToast();
-
-  const prevUserRoleRef = useRef(userRole);
-  const prevUserRolesRef = useRef(userRoles);
   const prevTabRef = useRef(currentTab);
-
   const hasSession = !!session;
 
-  useEffect(() => {
-    if (!hasSession) {
-      console.log('No active session, access will be restricted');
-      return;
-    }
-
-    if (prevUserRoleRef.current !== userRole) {
-      console.log('SidePanel rerender: userRole changed', { old: prevUserRoleRef.current, new: userRole });
-      prevUserRoleRef.current = userRole;
-    }
-    if (prevUserRolesRef.current !== userRoles) {
-      console.log('SidePanel rerender: userRoles changed', { old: prevUserRolesRef.current, new: userRoles });
-      prevUserRolesRef.current = userRoles;
-    }
-    if (prevTabRef.current !== currentTab) {
-      console.log('SidePanel rerender: currentTab changed', { old: prevTabRef.current, new: currentTab });
-      prevTabRef.current = currentTab;
-    }
-  }, [userRole, userRoles, hasSession, currentTab]);
-
+  // Memoize navigation items to prevent recreation
   const navigationItems = useMemo(() => [
     {
       name: 'Overview',
@@ -66,31 +43,45 @@ const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
     }
   ], []);
 
-  const shouldShowTab = useCallback((tab: string): boolean => {
-    if (!hasSession) return tab === 'dashboard';
-    if (roleLoading) return tab === 'dashboard';
-    if (!userRoles || !userRole) return tab === 'dashboard';
-
-    switch (tab) {
-      case 'dashboard':
-        return true;
-      case 'users':
-        return hasRole('admin') || hasRole('collector');
-      case 'financials':
-        return hasRole('admin') || hasRole('collector');
-      case 'system':
-        return hasRole('admin');
-      default:
-        return false;
+  // Memoize visible items calculation
+  const visibleNavigationItems = useMemo(() => {
+    if (!hasSession || roleLoading) {
+      return navigationItems.filter(item => item.alwaysShow);
     }
-  }, [roleLoading, userRoles, userRole, hasRole, hasSession]);
+
+    return navigationItems.filter(item => {
+      if (item.alwaysShow) return true;
+      if (!item.requiresRole) return true;
+      return item.requiresRole.some(role => userRoles?.includes(role));
+    });
+  }, [navigationItems, roleLoading, userRoles, hasSession]);
+
+  // Use useCallback with minimal dependencies
+  const handleTabChange = useCallback((tab: string) => {
+    if (!userRoles?.length) {
+      toast({
+        title: "Access Denied",
+        description: "Please wait while your permissions are being loaded.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (tab !== prevTabRef.current) {
+      prevTabRef.current = tab;
+      onTabChange(tab);
+    }
+  }, [onTabChange, userRoles, toast]);
 
   const handleLogoutClick = useCallback(async () => {
-    console.log('Logout initiated');
     try {
       await handleSignOut(false);
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[SidePanel] Logout error:', error);
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
@@ -99,27 +90,17 @@ const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
     }
   }, [handleSignOut, toast]);
 
-  const roleStatusText = useMemo(() => {
-    console.log('Calculating role status text');
-    if (!hasSession) return 'Not authenticated';
-    if (roleLoading) return 'Loading access...';
-    return userRole ? `Role: ${userRole}` : 'Access restricted';
-  }, [roleLoading, userRole, hasSession]);
-
-  const visibleNavigationItems = useMemo(() => {
-    console.log('Calculating visible navigation items');
-    if (!hasSession) return navigationItems.filter(item => item.alwaysShow);
-    return navigationItems.filter(item => 
-      item.alwaysShow || (!roleLoading && item.requiresRole?.some(role => userRoles?.includes(role)))
-    );
-  }, [navigationItems, roleLoading, userRoles, hasSession]);
-
-  const handleTabChange = useCallback((tab: string) => {
-    console.log('Tab change requested:', tab);
-    onTabChange(tab);
-  }, [onTabChange]);
-
-  console.log('SidePanel render', { userRole, roleLoading, hasSession });
+  // Only log when tab actually changes
+  useEffect(() => {
+    if (prevTabRef.current !== currentTab) {
+      console.log('[SidePanel] Tab changed:', {
+        from: prevTabRef.current,
+        to: currentTab,
+        timestamp: new Date().toISOString()
+      });
+      prevTabRef.current = currentTab;
+    }
+  }, [currentTab]);
 
   return (
     <div className="flex flex-col h-full bg-dashboard-card border-r border-dashboard-cardBorder">
@@ -146,7 +127,11 @@ const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
       <div className="p-4 border-t border-dashboard-cardBorder space-y-4">
         <Button
           variant="outline"
-          className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+          className={cn(
+            "w-full justify-start",
+            "bg-[#9b87f5] hover:bg-[#7E69AB]",
+            "text-white transition-colors"
+          )}
           onClick={handleLogoutClick}
         >
           Sign Out
