@@ -704,7 +704,7 @@ export type Database = {
           changed_by: string | null
           client_info: Json | null
           error_code: string | null
-          error_details: string | null
+          error_message: string | null
           id: string
           ip_address: string | null
           is_reset: boolean | null
@@ -720,7 +720,7 @@ export type Database = {
           changed_by?: string | null
           client_info?: Json | null
           error_code?: string | null
-          error_details?: string | null
+          error_message?: string | null
           id?: string
           ip_address?: string | null
           is_reset?: boolean | null
@@ -736,7 +736,7 @@ export type Database = {
           changed_by?: string | null
           client_info?: Json | null
           error_code?: string | null
-          error_details?: string | null
+          error_message?: string | null
           id?: string
           ip_address?: string | null
           is_reset?: boolean | null
