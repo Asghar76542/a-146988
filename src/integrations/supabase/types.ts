@@ -1263,6 +1263,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_failed_attempts: {
+        Args: {
+          p_member_number: string
+        }
+        Returns: undefined
+      }
       create_auth_user_for_collector: {
         Args: {
           member_num: string
@@ -1467,6 +1473,13 @@ export type Database = {
           member_number: string
           user_id: string
         }[]
+      }
+      validate_current_password: {
+        Args: {
+          p_member_number: string
+          p_current_password: string
+        }
+        Returns: Json
       }
       validate_password_complexity: {
         Args: {
