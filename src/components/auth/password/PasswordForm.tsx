@@ -47,7 +47,12 @@ export const PasswordForm = ({
   isSubmitting: externalIsSubmitting,
   setIsSubmitting: externalSetIsSubmitting
 }: PasswordFormProps) => {
-  console.log("PasswordForm.tsx: Component rendered", { memberNumber, hideCurrentPassword });
+  console.log("[PasswordForm] Initializing with props:", { 
+    memberNumber, 
+    hideCurrentPassword, 
+    hasResetToken: !!resetToken,
+    timestamp: new Date().toISOString()
+  });
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -60,32 +65,36 @@ export const PasswordForm = ({
   });
 
   const { isSubmitting: internalIsSubmitting, handlePasswordChange } = usePasswordChange(memberNumber, onSuccess);
-  
   const isSubmitting = externalIsSubmitting ?? internalIsSubmitting;
   const setIsSubmitting = externalSetIsSubmitting ?? (() => {});
 
   const handleFormSubmit = async (values: PasswordFormValues) => {
-    console.log("PasswordForm.tsx: Form submission started", { values: { ...values, currentPassword: '[REDACTED]' } });
+    console.log("[PasswordForm] Form submission started", { 
+      hasCurrentPassword: !!values.currentPassword,
+      hasNewPassword: !!values.newPassword,
+      hasConfirmPassword: !!values.confirmPassword,
+      timestamp: new Date().toISOString()
+    });
     
     try {
       setIsSubmitting(true);
-      console.log("PasswordForm.tsx: Calling handlePasswordChange");
+      console.log("[PasswordForm] Calling handlePasswordChange");
       
       if (onSubmit) {
         await onSubmit(values);
       } else {
         const result = await handlePasswordChange(values, resetToken);
-        console.log("PasswordForm.tsx: Password change result:", result);
+        console.log("[PasswordForm] Password change result:", result);
         
         if (result?.success) {
-          console.log("PasswordForm.tsx: Password change successful");
+          console.log("[PasswordForm] Password change successful");
           form.reset();
           toast.success("Password updated successfully");
           if (onSuccess) {
             onSuccess();
           }
         } else {
-          console.error("PasswordForm.tsx: Password change failed:", result?.error);
+          console.error("[PasswordForm] Password change failed:", result?.error);
           let errorMessage = result?.error;
           
           if (result?.code === 'INVALID_CURRENT_PASSWORD') {
@@ -101,17 +110,17 @@ export const PasswordForm = ({
         }
       }
     } catch (error) {
-      console.error("PasswordForm.tsx: Submit error:", error);
+      console.error("[PasswordForm] Submit error:", error);
       if (onError) {
         onError(error);
       }
     } finally {
-      console.log("PasswordForm.tsx: Form submission completed");
+      console.log("[PasswordForm] Form submission completed");
       setIsSubmitting(false);
     }
   };
 
-  console.log("PasswordForm.tsx: Form state", { 
+  console.log("[PasswordForm] Form state", { 
     isValid: form.formState.isValid,
     isDirty: form.formState.isDirty,
     errors: form.formState.errors
@@ -152,7 +161,7 @@ export const PasswordForm = ({
               type="button"
               variant="outline"
               onClick={() => {
-                console.log("PasswordForm.tsx: Cancel button clicked");
+                console.log("[PasswordForm] Cancel button clicked");
                 onCancel();
               }}
               disabled={isSubmitting}

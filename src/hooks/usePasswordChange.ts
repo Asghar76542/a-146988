@@ -17,20 +17,24 @@ interface PasswordChangeResult {
 const MAX_RETRIES = 3;
 
 export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) => {
-  console.log("usePasswordChange.ts: Hook initialized", { memberNumber });
+  console.log("[usePasswordChange] Hook initialized", { 
+    memberNumber,
+    timestamp: new Date().toISOString()
+  });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handlePasswordChange = async (values: PasswordFormValues, resetToken?: string, retryCount = 0): Promise<PasswordChangeData | null> => {
-    console.log("usePasswordChange.ts: handlePasswordChange called", { 
+    console.log("[usePasswordChange] handlePasswordChange called", { 
       hasResetToken: !!resetToken,
       retryCount,
-      memberNumber
+      memberNumber,
+      timestamp: new Date().toISOString()
     });
 
     if (retryCount >= MAX_RETRIES) {
-      console.error("usePasswordChange.ts: Maximum retry attempts reached");
+      console.error("[usePasswordChange] Maximum retry attempts reached");
       toast.error("Maximum retry attempts reached. Please try again later.");
       return null;
     }
@@ -39,7 +43,7 @@ export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) 
     const toastId = toast.loading("Changing password...");
 
     try {
-      console.log("usePasswordChange.ts: Starting password change", {
+      console.log("[usePasswordChange] Starting password change", {
         hasResetToken: !!resetToken,
         timestamp: new Date().toISOString(),
         retryCount
@@ -70,18 +74,18 @@ export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) 
             }
           });
 
-      console.log("usePasswordChange.ts: RPC Response received", {
+      console.log("[usePasswordChange] RPC Response received", {
         hasData: !!rpcResponse,
         hasError: !!error,
         errorMessage: error?.message
       });
 
       if (error) {
-        console.error("usePasswordChange.ts: Error from RPC:", error);
+        console.error("[usePasswordChange] Error from RPC:", error);
         toast.dismiss(toastId);
         
         if (error.code === 'PGRST301' && retryCount < MAX_RETRIES) {
-          console.log("usePasswordChange.ts: Retrying due to PGRST301 error");
+          console.log("[usePasswordChange] Retrying due to PGRST301 error");
           return handlePasswordChange(values, resetToken, retryCount + 1);
         }
         
@@ -95,7 +99,7 @@ export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) 
       const typedResponse = rpcResponse as unknown as PasswordChangeResult;
 
       if (!typedResponse || !typedResponse.success) {
-        console.error("usePasswordChange.ts: Unsuccessful response:", typedResponse);
+        console.error("[usePasswordChange] Unsuccessful response:", typedResponse);
         toast.dismiss(toastId);
         return {
           success: false,
@@ -104,7 +108,7 @@ export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) 
         };
       }
 
-      console.log("usePasswordChange.ts: Password change successful");
+      console.log("[usePasswordChange] Password change successful");
       toast.dismiss(toastId);
       toast.success("Password changed successfully");
       
@@ -123,7 +127,7 @@ export const usePasswordChange = (memberNumber: string, onSuccess?: () => void) 
       };
 
     } catch (error: any) {
-      console.error("usePasswordChange.ts: Unexpected error:", error);
+      console.error("[usePasswordChange] Unexpected error:", error);
       toast.dismiss(toastId);
       toast.error("An unexpected error occurred");
       return {
