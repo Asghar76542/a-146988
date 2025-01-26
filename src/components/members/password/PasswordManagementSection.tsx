@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BatteryFull, BatteryMedium, BatteryLow, BatteryWarning,
-  Lock, LockKeyhole, Key, RefreshCw, Shield 
-} from "lucide-react";
-import { formatDistanceToNow } from 'date-fns';
+import { Lock, Key } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import AdminPasswordResetDialog from '@/components/auth/AdminPasswordResetDialog';
 import MagicLinkButton from '@/components/auth/password/MagicLinkButton';
+import SecurityHealthPanel from './SecurityHealthPanel';
+import StatusIndicators from './StatusIndicators';
+import AdminPasswordControls from './AdminPasswordControls';
 
 interface PasswordManagementSectionProps {
   memberId: string;
@@ -32,46 +30,31 @@ const PasswordManagementSection = ({
 }: PasswordManagementSectionProps) => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+  const [lastLoginAt, setLastLoginAt] = useState<Date | null>(null);
+  const [isSessionActive, setIsSessionActive] = useState(false);
 
-  // Calculate password age and security indicators
-  const passwordAgeInDays = passwordSetAt 
-    ? Math.floor((Date.now() - passwordSetAt.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-  
-  const passwordAgeStatus = passwordAgeInDays > 90 ? 'warning' : 'success';
-
-  // Battery icon based on failed attempts
-  const BatteryIcon = () => {
-    if (failedLoginAttempts === 0) return <BatteryFull className="w-4 h-4 text-green-500" />;
-    if (failedLoginAttempts <= 2) return <BatteryMedium className="w-4 h-4 text-yellow-500" />;
-    if (failedLoginAttempts <= 4) return <BatteryLow className="w-4 h-4 text-orange-500" />;
-    return <BatteryWarning className="w-4 h-4 text-red-500" />;
-  };
-
-  // Lock countdown timer
   useEffect(() => {
-    if (!lockedUntil) return;
+    const fetchSessionInfo = async () => {
+      try {
+        const { data: sessionData } = await supabase
+          .from('auth.sessions')
+          .select('created_at, not_after')
+          .eq('user_id', memberId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-    const updateTimer = () => {
-      const now = new Date();
-      const diff = lockedUntil.getTime() - now.getTime();
-      
-      if (diff <= 0) {
-        setTimeRemaining(null);
-        return;
+        if (sessionData) {
+          setLastLoginAt(new Date(sessionData.created_at));
+          setIsSessionActive(new Date(sessionData.not_after) > new Date());
+        }
+      } catch (error) {
+        console.error('Error fetching session info:', error);
       }
-
-      const minutes = Math.floor(diff / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setTimeRemaining(`${minutes}m ${seconds}s`);
     };
 
-    const timer = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    return () => clearInterval(timer);
-  }, [lockedUntil]);
+    fetchSessionInfo();
+  }, [memberId]);
 
   const handleUnlockAccount = async () => {
     try {
@@ -86,14 +69,7 @@ const PasswordManagementSection = ({
         member_number: memberNumber
       });
 
-      if (error) {
-        console.error('Error unlocking account:', {
-          error,
-          memberNumber,
-          timestamp: new Date().toISOString()
-        });
-        throw error;
-      }
+      if (error) throw error;
 
       toast.success("Account has been unlocked", {
         description: `Successfully unlocked account for ${memberName}`
@@ -115,44 +91,26 @@ const PasswordManagementSection = ({
   };
 
   return (
-    <div className="space-y-4 border-t border-white/10 pt-4">
+    <div className="space-y-4">
       {/* Status Section */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h4 className="text-sm font-medium text-dashboard-accent1">Password Status</h4>
-          <div className="flex items-center gap-2">
-            {/* Password Set Status */}
-            <Badge variant="outline" className={`bg-${passwordAgeStatus === 'warning' ? 'yellow' : 'green'}-500/10 text-${passwordAgeStatus === 'warning' ? 'yellow' : 'green'}-500`}>
-              <LockKeyhole className="w-3 h-3 mr-1" />
-              {passwordSetAt ? `Set ${formatDistanceToNow(passwordSetAt)} ago` : 'No Password'}
-            </Badge>
-            
-            {/* Lock Status */}
-            {lockedUntil && new Date(lockedUntil) > new Date() && (
-              <Badge variant="outline" className="bg-red-500/10 text-red-500">
-                <Lock className="w-3 h-3 mr-1" />
-                {timeRemaining ? `Locked for ${timeRemaining}` : 'Locked'}
-              </Badge>
-            )}
-            
-            {/* Reset Required Status */}
-            {passwordResetRequired && (
-              <Badge variant="outline" className="bg-blue-500/10 text-blue-500">
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Reset Required
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Security Health */}
-        <div className="flex items-center gap-2">
-          <BatteryIcon />
-          <span className="text-sm text-dashboard-muted">
-            Failed attempts: {failedLoginAttempts}
-          </span>
-        </div>
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium text-dashboard-accent1">Password Status</h4>
+        <StatusIndicators
+          passwordSetAt={passwordSetAt}
+          lockedUntil={lockedUntil}
+          passwordResetRequired={passwordResetRequired}
+          lastLoginAt={lastLoginAt}
+          isSessionActive={isSessionActive}
+        />
       </div>
+
+      {/* Security Health Panel */}
+      <SecurityHealthPanel
+        failedLoginAttempts={failedLoginAttempts}
+        passwordSetAt={passwordSetAt}
+        isEmailVerified={true}
+        is2FAEnabled={false}
+      />
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
@@ -178,10 +136,16 @@ const PasswordManagementSection = ({
           <Key className="w-4 h-4 mr-2" />
           Reset Password
         </Button>
+
+        <MagicLinkButton 
+          memberNumber={memberNumber}
+          memberName={memberName}
+        />
       </div>
 
-      {/* Magic Link Button */}
-      <MagicLinkButton 
+      {/* Admin Controls */}
+      <AdminPasswordControls
+        memberId={memberId}
         memberNumber={memberNumber}
         memberName={memberName}
       />
