@@ -37,10 +37,7 @@ const PasswordManagementSection = ({
     const fetchSessionInfo = async () => {
       try {
         const { data: sessionData, error } = await supabase
-          .rpc<{
-            last_login: string | null;
-            is_active: boolean;
-          }, { user_id_param: string }>("get_user_session_info", { user_id_param: memberId });
+          .rpc('get_user_session_info', { user_id_param: memberId });
 
         if (error) {
           console.error('Error fetching session info:', error);
