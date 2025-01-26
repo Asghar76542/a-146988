@@ -75,17 +75,32 @@ const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
 
   const handleLogoutClick = useCallback(async () => {
     try {
+      // Clear all storage first
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Attempt to sign out
       await handleSignOut(false);
+      
+      // Show success message
       toast({
         title: "Signed Out",
         description: "You have been successfully signed out.",
       });
+
+      // Force redirect to login
+      window.location.href = '/login';
     } catch (error) {
       console.error('[SidePanel] Logout error:', error);
+      
+      // If there's an error, clear storage and force redirect anyway
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+      
       toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive"
+        title: "Signed Out",
+        description: "You have been signed out.",
       });
     }
   }, [handleSignOut, toast]);
