@@ -40,7 +40,7 @@ const PasswordManagementSection = ({
           .rpc<{
             last_login: string | null;
             is_active: boolean;
-          }>("get_user_session_info", { user_id_param: memberId });
+          }, { user_id_param: string }>("get_user_session_info", { user_id_param: memberId });
 
         if (error) {
           console.error('Error fetching session info:', error);
