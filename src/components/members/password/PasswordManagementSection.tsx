@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, LockKeyhole, Key, RefreshCw } from "lucide-react";
+import { 
+  BatteryFull, BatteryMedium, BatteryLow, BatteryWarning,
+  Lock, LockKeyhole, Key, RefreshCw, Shield 
+} from "lucide-react";
+import { formatDistanceToNow } from 'date-fns';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import AdminPasswordResetDialog from '@/components/auth/AdminPasswordResetDialog';
@@ -55,9 +59,6 @@ const PasswordManagementSection = ({
         description: `Successfully unlocked account for ${memberName}`
       });
 
-      // Invalidate queries to refresh member data
-      // This assumes you're using react-query and have queryClient available
-      // If not, you'll need to implement your own refresh mechanism
     } catch (error: any) {
       console.error('Failed to unlock account:', {
         error,
