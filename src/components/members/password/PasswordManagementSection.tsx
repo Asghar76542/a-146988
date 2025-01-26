@@ -8,7 +8,6 @@ import MagicLinkButton from '@/components/auth/password/MagicLinkButton';
 import SecurityHealthPanel from './SecurityHealthPanel';
 import StatusIndicators from './StatusIndicators';
 import AdminPasswordControls from './AdminPasswordControls';
-import { AuthSession } from '@/types/auth';
 
 interface PasswordManagementSectionProps {
   memberId: string;
@@ -18,6 +17,11 @@ interface PasswordManagementSectionProps {
   failedLoginAttempts: number;
   lockedUntil: Date | null;
   passwordResetRequired: boolean;
+}
+
+interface SessionInfo {
+  last_login: string | null;
+  is_active: boolean;
 }
 
 const PasswordManagementSection = ({
@@ -38,7 +42,7 @@ const PasswordManagementSection = ({
     const fetchSessionInfo = async () => {
       try {
         const { data: sessionData, error } = await supabase
-          .rpc('get_user_session_info', { user_id_param: memberId });
+          .rpc<SessionInfo>('get_user_session_info', { user_id_param: memberId });
 
         if (error) {
           console.error('Error fetching session info:', error);
