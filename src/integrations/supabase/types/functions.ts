@@ -122,4 +122,13 @@ export type DatabaseFunctions = {
     };
     Returns: string;
   };
+  get_user_session_info: {
+    Args: { 
+      user_id_param: string 
+    };
+    Returns: {
+      last_login: string | null;
+      is_active: boolean;
+    };
+  };
 };
