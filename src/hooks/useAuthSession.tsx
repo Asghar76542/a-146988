@@ -32,22 +32,28 @@ export function useAuthSession() {
         sessionStorage.clear();
       }
       
+      // Clear session state first
+      setSession(null);
+      
       console.log('[Auth] Signing out from Supabase...');
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error && !error.message.includes('invalid JWT')) {
+        throw error;
+      }
       
       console.log('[Auth] Sign out successful');
-      setSession(null);
       window.location.href = '/login';
       
     } catch (error: any) {
       console.error('[Auth] Error during sign out:', error);
+      // Even if there's an error, clear storage and redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+      
       toast({
-        title: "Error signing out",
-        description: error.message.includes('502') 
-          ? "Failed to connect to the server. Please check your network connection and try again."
-          : error.message,
-        variant: "destructive",
+        title: "Signed Out",
+        description: "You have been signed out.",
       });
     } finally {
       setIsLoggingOut(false);
