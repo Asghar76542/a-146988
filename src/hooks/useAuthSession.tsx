@@ -26,22 +26,27 @@ export function useAuthSession() {
       await queryClient.resetQueries();
       await queryClient.clear();
       
+      // Clear storage first
       if (!skipStorageClear) {
         console.log('[Auth] Clearing local storage...');
         localStorage.clear();
         sessionStorage.clear();
       }
-      
-      // Clear session state first
+
+      // Clear session state before signing out
       setSession(null);
-      
-      console.log('[Auth] Signing out from Supabase...');
-      const { error } = await supabase.auth.signOut();
-      if (error && !error.message.includes('invalid JWT')) {
-        throw error;
+
+      try {
+        // Attempt to sign out from Supabase
+        console.log('[Auth] Signing out from Supabase...');
+        await supabase.auth.signOut();
+        console.log('[Auth] Sign out successful');
+      } catch (signOutError: any) {
+        // Log but don't throw the error
+        console.warn('[Auth] Non-critical error during sign out:', signOutError);
       }
-      
-      console.log('[Auth] Sign out successful');
+
+      // Always redirect to login
       window.location.href = '/login';
       
     } catch (error: any) {
