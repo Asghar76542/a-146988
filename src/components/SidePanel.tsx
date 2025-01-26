@@ -1,22 +1,14 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLocation, Link } from "react-router-dom";
 import { LogOut, Settings, Users, Home, FileText, GitBranch } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
 import { useAuthLogout } from '@/hooks/useAuthLogout';
 
-interface SideNavProps {
-  isCollapsed: boolean;
-  links: {
-    title: string;
-    label?: string;
-    icon: React.ReactNode;
-    variant: "default" | "ghost";
-    href: string;
-  }[];
+interface SidePanelProps {
+  userRole: string | null;
 }
 
-const SidePanel = ({ userRole }: { userRole: string | null }) => {
+const SidePanel = ({ userRole }: SidePanelProps) => {
   const { handleLogout } = useAuthLogout();
   const location = useLocation();
 
@@ -33,7 +25,7 @@ const SidePanel = ({ userRole }: { userRole: string | null }) => {
       label: "",
       icon: <Users className="w-4 h-4" />,
       variant: "ghost",
-      href: "/members",
+      href: "/users",
     },
     {
       title: "Audit",

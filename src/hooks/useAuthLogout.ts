@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 export const useAuthLogout = () => {
   const navigate = useNavigate();
@@ -24,15 +24,27 @@ export const useAuthLogout = () => {
       
       if (error) {
         console.error('Supabase signOut error:', error);
-        toast.error('There was an issue signing out. You have been redirected to login.');
+        toast({
+          title: "Signed Out",
+          description: "You have been signed out.",
+          variant: "default",
+        });
       } else {
         console.log('Supabase signOut successful');
-        toast.success('Successfully logged out');
+        toast({
+          title: "Signed Out",
+          description: "Successfully logged out",
+          variant: "default",
+        });
       }
 
     } catch (err) {
       console.error('Logout error:', err);
-      toast.error('There was an issue signing out. You have been redirected to login.');
+      toast({
+        title: "Signed Out",
+        description: "You have been signed out.",
+        variant: "default",
+      });
     } finally {
       // Always redirect to login page
       console.log('Redirecting to login page...');
