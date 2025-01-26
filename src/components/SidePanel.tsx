@@ -1,161 +1,113 @@
-import { useCallback, useMemo, memo, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { useAuthSession } from "@/hooks/useAuthSession";
-import NavItem from "./navigation/NavItem";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLocation, Link } from "react-router-dom";
+import { LogOut, Settings, Users, Home, FileText, GitBranch } from "lucide-react";
+import { useAuthLogout } from '@/hooks/useAuthLogout';
 
-interface SidePanelProps {
-  currentTab: string;
-  onTabChange: (tab: string) => void;
+interface SideNavProps {
+  isCollapsed: boolean;
+  links: {
+    title: string;
+    label?: string;
+    icon: React.ReactNode;
+    variant: "default" | "ghost";
+    href: string;
+  }[];
 }
 
-const SidePanel = memo(({ currentTab, onTabChange }: SidePanelProps) => {
-  const { session, handleSignOut } = useAuthSession();
-  const { userRole, userRoles, roleLoading } = useRoleAccess();
-  const { toast } = useToast();
-  const prevTabRef = useRef(currentTab);
-  const hasSession = !!session;
+const SidePanel = ({ userRole }: { userRole: string | null }) => {
+  const { handleLogout } = useAuthLogout();
+  const location = useLocation();
 
-  // Memoize navigation items to prevent recreation
-  const navigationItems = useMemo(() => [
+  const links = [
     {
-      name: 'Overview',
-      tab: 'dashboard',
-      alwaysShow: true
+      title: "Dashboard",
+      label: "",
+      icon: <Home className="w-4 h-4" />,
+      variant: "ghost",
+      href: "/dashboard",
     },
     {
-      name: 'Users',
-      tab: 'users',
-      requiresRole: ['admin', 'collector'] as const
+      title: "Members",
+      label: "",
+      icon: <Users className="w-4 h-4" />,
+      variant: "ghost",
+      href: "/members",
     },
     {
-      name: 'Financials',
-      tab: 'financials',
-      requiresRole: ['admin', 'collector'] as const
+      title: "Audit",
+      label: "",
+      icon: <FileText className="w-4 h-4" />,
+      variant: "ghost",
+      href: "/audit",
     },
     {
-      name: 'System',
-      tab: 'system',
-      requiresRole: ['admin'] as const
+      title: "System",
+      label: "",
+      icon: <Settings className="w-4 h-4" />,
+      variant: "ghost",
+      href: "/system",
+    },
+    {
+      title: "Git",
+      label: "",
+      icon: <GitBranch className="w-4 h-4" />,
+      variant: "ghost",
+      href: "/git",
+    },
+  ];
+
+  const filteredLinks = links.filter(link => {
+    if (userRole === 'admin') return true;
+    if (userRole === 'collector') {
+      return ['Dashboard', 'Members'].includes(link.title);
     }
-  ], []);
-
-  // Memoize visible items calculation
-  const visibleNavigationItems = useMemo(() => {
-    if (!hasSession || roleLoading) {
-      return navigationItems.filter(item => item.alwaysShow);
+    if (userRole === 'member') {
+      return ['Dashboard'].includes(link.title);
     }
-
-    return navigationItems.filter(item => {
-      if (item.alwaysShow) return true;
-      if (!item.requiresRole) return true;
-      return item.requiresRole.some(role => userRoles?.includes(role));
-    });
-  }, [navigationItems, roleLoading, userRoles, hasSession]);
-
-  // Use useCallback with minimal dependencies
-  const handleTabChange = useCallback((tab: string) => {
-    if (!userRoles?.length) {
-      toast({
-        title: "Access Denied",
-        description: "Please wait while your permissions are being loaded.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (tab !== prevTabRef.current) {
-      prevTabRef.current = tab;
-      onTabChange(tab);
-    }
-  }, [onTabChange, userRoles, toast]);
-
-  const handleLogoutClick = useCallback(async () => {
-    try {
-      // Clear all storage first
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Attempt to sign out
-      await handleSignOut(false);
-      
-      // Show success message
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
-
-      // Force redirect to login
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('[SidePanel] Logout error:', error);
-      
-      // If there's an error, clear storage and force redirect anyway
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = '/login';
-      
-      toast({
-        title: "Signed Out",
-        description: "You have been signed out.",
-      });
-    }
-  }, [handleSignOut, toast]);
-
-  // Only log when tab actually changes
-  useEffect(() => {
-    if (prevTabRef.current !== currentTab) {
-      console.log('[SidePanel] Tab changed:', {
-        from: prevTabRef.current,
-        to: currentTab,
-        timestamp: new Date().toISOString()
-      });
-      prevTabRef.current = currentTab;
-    }
-  }, [currentTab]);
+    return false;
+  });
 
   return (
-    <div className="flex flex-col h-full bg-dashboard-card border-r border-dashboard-cardBorder">
-      <ScrollArea className="flex-1">
-        <div className="space-y-4 py-4">
-          <div className="px-3 py-2">
-            <h2 className="mb-2 px-4 text-lg font-semibold text-dashboard-highlight">
-              Navigation
-            </h2>
-            <div className="space-y-1">
-              {visibleNavigationItems.map((item) => (
-                <NavItem
-                  key={item.tab}
-                  name={item.name}
-                  tab={item.tab}
-                  isActive={currentTab === item.tab}
-                  onClick={() => handleTabChange(item.tab)}
-                />
-              ))}
+    <div className="flex h-screen">
+      <div className="relative border-r border-dashboard-cardBorder bg-dashboard-card px-3 py-8 h-full">
+        <div className="flex flex-col h-full">
+          <div className="space-y-4 py-4">
+            <div className="px-3 py-2">
+              <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-dashboard-accent1">
+                Overview
+              </h2>
+              <div className="space-y-1">
+                {filteredLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    to={link.href}
+                    className={cn(
+                      "flex items-center justify-start w-full p-2 text-sm font-medium rounded-md text-dashboard-text hover:text-white hover:bg-dashboard-cardHover",
+                      location.pathname === link.href && "bg-dashboard-cardHover text-white"
+                    )}
+                  >
+                    {link.icon}
+                    <span className="ml-2">{link.title}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </ScrollArea>
-      <div className="p-4 border-t border-dashboard-cardBorder space-y-4">
+
         <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start",
-            "bg-[#9b87f5] hover:bg-[#7E69AB]",
-            "text-white transition-colors"
-          )}
-          onClick={handleLogoutClick}
+          variant="ghost"
+          size="icon"
+          onClick={handleLogout}
+          className="absolute bottom-4 left-4"
         >
-          Sign Out
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
     </div>
   );
-});
-
-SidePanel.displayName = "SidePanel";
+};
 
 export default SidePanel;
