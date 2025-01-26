@@ -129,6 +129,6 @@ export type DatabaseFunctions = {
     Returns: {
       last_login: string | null;
       is_active: boolean;
-    };
+    }[];
   };
 };

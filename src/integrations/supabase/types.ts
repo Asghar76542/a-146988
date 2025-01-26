@@ -1360,6 +1360,15 @@ export type Database = {
           rls_enabled: boolean
         }[]
       }
+      get_user_session_info: {
+        Args: {
+          user_id_param: string
+        }
+        Returns: {
+          last_login: string
+          is_active: boolean
+        }[]
+      }
       handle_failed_login: {
         Args: {
           member_number: string

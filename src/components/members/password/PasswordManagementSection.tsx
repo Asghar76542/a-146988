@@ -19,11 +19,6 @@ interface PasswordManagementSectionProps {
   passwordResetRequired: boolean;
 }
 
-interface SessionInfo {
-  last_login: string | null;
-  is_active: boolean;
-}
-
 const PasswordManagementSection = ({
   memberId,
   memberNumber,
@@ -42,16 +37,19 @@ const PasswordManagementSection = ({
     const fetchSessionInfo = async () => {
       try {
         const { data: sessionData, error } = await supabase
-          .rpc<SessionInfo>('get_user_session_info', { user_id_param: memberId });
+          .rpc<{
+            last_login: string | null;
+            is_active: boolean;
+          }>("get_user_session_info", { user_id_param: memberId });
 
         if (error) {
           console.error('Error fetching session info:', error);
           return;
         }
 
-        if (sessionData) {
-          setLastLoginAt(sessionData.last_login ? new Date(sessionData.last_login) : null);
-          setIsSessionActive(sessionData.is_active || false);
+        if (sessionData && sessionData[0]) {
+          setLastLoginAt(sessionData[0].last_login ? new Date(sessionData[0].last_login) : null);
+          setIsSessionActive(sessionData[0].is_active || false);
         }
       } catch (error) {
         console.error('Error fetching session info:', error);
