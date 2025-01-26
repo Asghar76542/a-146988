@@ -39,8 +39,13 @@ export function useAuthSession() {
       try {
         // Attempt to sign out from Supabase
         console.log('[Auth] Signing out from Supabase...');
-        await supabase.auth.signOut();
-        console.log('[Auth] Sign out successful');
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          // Log the error but continue with the logout process
+          console.warn('[Auth] Non-critical error during sign out:', error);
+        } else {
+          console.log('[Auth] Sign out successful');
+        }
       } catch (signOutError: any) {
         // Log but don't throw the error
         console.warn('[Auth] Non-critical error during sign out:', signOutError);
